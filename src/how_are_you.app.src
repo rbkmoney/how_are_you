@@ -1,0 +1,21 @@
+{application, how_are_you, [
+    {description,
+        "Simple app for collecting and reporting metrics to somewere (statsd for ex.)"
+    },
+    {vsn, "0.1"},
+    {registered, []},
+    {mod, {how_are_you, []}},
+    {applications, [
+        kernel,
+        stdlib,
+        os_mon,
+        folsom,
+        statsderl
+    ]},
+    {env, []},
+    {modules, []},
+    {maintainers, [
+        "Evgeny Levenets <levenets.e.e@gmail.com>"
+    ]},
+    {licenses, []}
+]}.
