@@ -1,0 +1,8 @@
+_build
+log
+*~
+erl_crash.dump
+.DS_Store
+*.beam
+*.sublime-project
+*.sublime-workspace
