@@ -18,7 +18,11 @@
 -opaque metric() :: #metric{}.
 -type metric_type() :: meter | gauge.
 -type metric_key() :: binary().
--type metric_raw_key() :: [atom() | integer() | binary() | string()] | metric_key().
+-type metric_raw_key() ::
+      atom()
+    | integer()
+    | binary()
+    | maybe_improper_list(metric_raw_key(), metric_raw_key()).
 -type metric_value() :: number().
 
 -type register_error() ::
@@ -78,26 +82,22 @@ get() ->
 -define(SEPARATOR, $.).
 
 -spec construct_key(metric_raw_key()) -> metric_key().
-construct_key(Bin) when is_binary(Bin) andalso byte_size(Bin) > 0 ->
+construct_key(Bin) when is_binary(Bin) ->
     Bin;
-construct_key([FirstKey | KeyList]) ->
-    lists:foldl(
-        fun(Key, Acc) ->
-            BinKey = key_to_binary(Key),
-            <<Acc/binary, ?SEPARATOR, BinKey/binary>>
-        end,
-        key_to_binary(FirstKey),
-        KeyList
-    ).
-
-key_to_binary(Bin) when is_binary(Bin) ->
-    Bin;
-key_to_binary(Atom) when is_atom(Atom) ->
+construct_key(Atom) when is_atom(Atom) ->
     erlang:atom_to_binary(Atom, utf8);
-key_to_binary(Int) when is_integer(Int) ->
+construct_key(Int) when is_integer(Int) ->
     erlang:integer_to_binary(Int);
-key_to_binary(String) when is_list(String) ->
-    unicode:characters_to_binary(String, utf8).
+construct_key(List) when is_list(List) ->
+    construct_key(List, <<>>).
+
+-spec construct_key(metric_raw_key(), binary()) -> metric_key().
+construct_key([], Acc) ->
+    Acc;
+construct_key([Head | Tail], Acc) ->
+    construct_key(Tail, <<Acc/binary, ?SEPARATOR, (construct_key(Head))/binary>>);
+construct_key(NonList, Acc) ->
+    <<Acc/binary, ?SEPARATOR, (construct_key(NonList))/binary>>.
 
 register_if_not_exist(Type, Key) ->
     case check_metric_exist(Type, Key) of
