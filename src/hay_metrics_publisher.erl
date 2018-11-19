@@ -1,11 +1,9 @@
 -module(hay_metrics_publisher).
 -behaviour(gen_server).
 
--include("hay_metrics.hrl").
-
 %%
 -callback get_interval() -> pos_integer().
--callback publish_metric(metric()) -> ok | {error, Reason :: term()}.
+-callback publish_metric(hay_metrics:metric()) -> ok | {error, Reason :: term()}.
 
 -export([start_link/1]).
 

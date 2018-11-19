@@ -1,11 +1,9 @@
 -module(hay_metrics_handler).
 -behaviour(gen_server).
 
--include("hay_metrics.hrl").
-
 %%
 -callback get_interval() -> pos_integer().
--callback gather_metrics() -> [metric()].
+-callback gather_metrics() -> [hay_metrics:metric()].
 
 -export([start_link/1]).
 

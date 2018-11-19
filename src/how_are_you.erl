@@ -5,9 +5,14 @@
 -behaviour(supervisor).
 -behaviour(application).
 
-%% API
+%% Application API
 -export([start/0]).
 -export([stop/0]).
+
+%% Metrics API
+-export([construct/3]).
+-export([register/1]).
+-export([push/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -15,6 +20,18 @@
 %% Application callbacks
 -export([start/2]).
 -export([stop/1]).
+
+%% Types
+
+-type metric() :: hay_metrics:metric().
+-type metric_key() :: hay_metrics:metric_raw_key().
+-type metric_type() :: hay_metrics:metric_type().
+-type metric_value() :: hay_metrics:metric_value().
+
+-export_type([metric/0]).
+-export_type([metric_type/0]).
+-export_type([metric_key/0]).
+-export_type([metric_value/0]).
 
 %%
 %% API
@@ -28,6 +45,20 @@ start() ->
     ok.
 stop() ->
     application:stop(?MODULE).
+
+-spec construct(metric_type(), metric_key(), metric_value()) ->
+    metric().
+construct(Type, Key, Val) ->
+    hay_metrics:construct(Type, Key, Val).
+
+-spec register(metric()) ->
+    ok | {error, hay_metrics:register_error()}.
+register(Metric) ->
+    hay_metrics:register(Metric).
+
+-spec push(metric()) -> ok.
+push(Metric) ->
+    hay_metrics:push(Metric).
 
 %% Supervisor callbacks
 

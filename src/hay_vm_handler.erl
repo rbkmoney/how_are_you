@@ -1,8 +1,6 @@
 -module(hay_vm_handler).
 -behaviour(hay_metrics_handler).
 
--include("hay_metrics.hrl").
-
 %%%
 
 -export([get_interval/0]).
@@ -13,7 +11,7 @@
 get_interval() ->
     2000.
 
--spec gather_metrics() -> [metric()].
+-spec gather_metrics() -> [hay_metrics:metric()].
 gather_metrics() ->
     gather_vm_memory() ++ gather_io_stat() ++ gather_system_memory().
 

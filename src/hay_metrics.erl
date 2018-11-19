@@ -1,12 +1,37 @@
 -module(hay_metrics).
--include("hay_metrics.hrl").
 
 -export([construct/3]).
+-export([type/1]).
+-export([key/1]).
+-export([value/1]).
+
 -export([register/1]).
 -export([push/1]).
 -export([get/0]).
 
--spec construct(metric_type(), binary() | list(), term()) -> metric().
+-record(metric, {
+    type    :: metric_type(),
+    key     :: metric_key(),
+    value   :: metric_value()
+}).
+
+-opaque metric() :: #metric{}.
+-type metric_type() :: meter | gauge.
+-type metric_key() :: binary().
+-type metric_raw_key() :: [atom() | integer() | binary() | string()] | metric_key().
+-type metric_value() :: number().
+
+-type register_error() ::
+    {already_registered, {metric_key(), Type :: metric_type(), RegisteredType :: metric_type()}}.
+
+-export_type([metric/0]).
+-export_type([metric_type/0]).
+-export_type([metric_key/0]).
+-export_type([metric_raw_key/0]).
+-export_type([metric_value/0]).
+-export_type([register_error/0]).
+
+-spec construct(metric_type(), binary() | list(), metric_value()) -> metric().
 construct(Type, Key, Val) ->
     #metric{
         type    = Type,
@@ -14,7 +39,19 @@ construct(Type, Key, Val) ->
         value   = Val
     }.
 
--spec register(metric()) -> ok | {error, already_registered}.
+-spec type(metric()) -> metric_type().
+type(#metric{type = Type}) ->
+    Type.
+
+-spec key(metric()) -> metric_key().
+key(#metric{key = Key}) ->
+    Key.
+
+-spec value(metric()) -> metric_value().
+value(#metric{value = Val}) ->
+    Val.
+
+-spec register(metric()) -> ok | {error, register_error()}.
 register(#metric{type = Type, key = Key}) ->
     register_if_not_exist(Type, Key).
 
@@ -40,6 +77,7 @@ get() ->
 
 -define(SEPARATOR, $.).
 
+-spec construct_key(metric_raw_key()) -> metric_key().
 construct_key(Bin) when is_binary(Bin) andalso byte_size(Bin) > 0 ->
     Bin;
 construct_key([FirstKey | KeyList]) ->
@@ -67,9 +105,9 @@ register_if_not_exist(Type, Key) ->
             ok;
         {error, nonexistent_metric} ->
             register_(Type, Key);
-        {error, wrong_type} ->
+        {error, {wrong_type, OtherType}} ->
             % already registered with other type
-            {error, already_registered}
+            {error, {already_registered, Key, Type, OtherType}}
     end.
 
 register_(meter, Key) ->
@@ -81,8 +119,8 @@ check_metric_exist(Type, Key) ->
     case folsom_metrics:get_metric_info(Key) of
         [{Key, [{type, Type}, _]}] ->
             ok;
-        [{Key, [{type, _OtherType}, _]}] ->
-            {error, wrong_type};
+        [{Key, [{type, OtherType}, _]}] ->
+            {error, {wrong_type, OtherType}};
         [{error, Key, nonexistent_metric}] ->
             {error, nonexistent_metric}
     end.
