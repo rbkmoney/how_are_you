@@ -10,9 +10,9 @@
 -export([stop/0]).
 
 %% Metrics API
--export([construct/3]).
--export([register/1]).
--export([push/1]).
+-export([metric_construct/3]).
+-export([metric_register/1]).
+-export([metric_push/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -46,18 +46,18 @@ start() ->
 stop() ->
     application:stop(?MODULE).
 
--spec construct(metric_type(), metric_key(), metric_value()) ->
+-spec metric_construct(metric_type(), metric_key(), metric_value()) ->
     metric().
-construct(Type, Key, Val) ->
+metric_construct(Type, Key, Val) ->
     hay_metrics:construct(Type, Key, Val).
 
--spec register(metric()) ->
+-spec metric_register(metric()) ->
     ok | {error, hay_metrics:register_error()}.
-register(Metric) ->
+metric_register(Metric) ->
     hay_metrics:register(Metric).
 
--spec push(metric()) -> ok.
-push(Metric) ->
+-spec metric_push(metric()) -> ok.
+metric_push(Metric) ->
     hay_metrics:push(Metric).
 
 %% Supervisor callbacks
