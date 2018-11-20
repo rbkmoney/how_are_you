@@ -88,8 +88,8 @@ construct_key(Atom) when is_atom(Atom) ->
     erlang:atom_to_binary(Atom, utf8);
 construct_key(Int) when is_integer(Int) ->
     erlang:integer_to_binary(Int);
-construct_key(List) when is_list(List) ->
-    construct_key(List, <<>>).
+construct_key([Head | List]) when is_list(List) ->
+    construct_key(List, construct_key(Head)).
 
 -spec construct_key(metric_raw_key(), binary()) -> metric_key().
 construct_key([], Acc) ->
