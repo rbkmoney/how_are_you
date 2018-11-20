@@ -35,7 +35,7 @@
 -export_type([metric_value/0]).
 -export_type([register_error/0]).
 
--spec construct(metric_type(), binary() | list(), metric_value()) -> metric().
+-spec construct(metric_type(), metric_raw_key(), metric_value()) -> metric().
 construct(Type, Key, Val) ->
     #metric{
         type    = Type,
