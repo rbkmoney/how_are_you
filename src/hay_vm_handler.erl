@@ -13,7 +13,13 @@ get_interval() ->
 
 -spec gather_metrics() -> [hay_metrics:metric()].
 gather_metrics() ->
-    gather_vm_memory() ++ gather_io_stat() ++ gather_system_memory().
+    lists:flatten([
+        gather_vm_memory(),
+        gather_io_stat(),
+        gather_system_memory(),
+        gather_load_stats(),
+        gather_vm_info()
+    ]).
 
 gather_vm_memory() ->
     % VM memory (bytes)
@@ -28,22 +34,18 @@ gather_vm_memory() ->
     %     {code,11733934},
     %     {ets,4499664}
     % ]
-    lists:map(
-        fun({Key, Val}) ->
-            hay_metrics:construct(gauge, [<<"vm">>, <<"memory">>, Key], Val)
-        end,
-        erlang:memory()
-    ).
+    [
+        hay_metrics:construct(gauge, [<<"vm">>, <<"memory">>, Key], Val)
+        || {Key, Val} <- erlang:memory()
+    ].
 
 gather_io_stat() ->
     % {{input,21978695},{output,9483435}}
     {Input, Output} = erlang:statistics(io),
-    lists:map(
-        fun({Key, Val}) ->
-            hay_metrics:construct(meter, [<<"vm">>, <<"io">>, Key], Val)
-        end,
-        [Input, Output]
-    ).
+    [
+        hay_metrics:construct(gauge, [<<"vm">>, <<"io">>, Key], Val)
+        || {Key, Val} <- [Input, Output]
+    ].
 
 
 %% TODO do we need this?
@@ -59,9 +61,42 @@ gather_system_memory() ->
     %     {free_memory,4948811776},
     %     {total_memory,7303614464}
     % ]
-    lists:map(
-        fun({Key, Val}) ->
-            hay_metrics:construct(gauge, [<<"system">>, <<"memory">>, Key], Val)
-        end,
-        memsup:get_system_memory_data()
-    ).
+    [
+        hay_metrics:construct(gauge, [<<"system">>, <<"memory">>, Key], Val)
+        || {Key, Val} <- memsup:get_system_memory_data()
+    ].
+
+gather_load_stats() ->
+    Names = [
+        total_run_queue_lengths,
+        total_active_tasks,
+        context_switches,
+        reductions,
+        wall_clock,
+        runtime
+    ],
+    [
+        hay_metrics:construct(gauge, [<<"vm">>, <<"load">>, Name], get_statistics_counter(Name))
+        || Name <- Names
+    ].
+
+gather_vm_info() ->
+    Names = [
+        atom_count, atom_limit,
+        ets_count, ets_limit,
+        port_count, port_limit,
+        process_count, process_limit,
+        schedulers_online
+    ],
+    [
+        hay_metrics:construct(gauge, [<<"vm">>, <<"info">>, Name], erlang:system_info(Name))
+        || Name <- Names
+    ].
+
+get_statistics_counter(Key) ->
+    case erlang:statistics(Key) of
+        {TotalValue, _ValueSinceLastCall} ->
+            TotalValue;
+        Value ->
+            Value
+    end.
