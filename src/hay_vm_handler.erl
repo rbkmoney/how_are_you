@@ -86,7 +86,7 @@ gather_vm_info() ->
         ets_count, ets_limit,
         port_count, port_limit,
         process_count, process_limit,
-        schedulers
+        schedulers_online
     ],
     [
         hay_metrics:construct(gauge, [<<"vm">>, <<"info">>, Name], erlang:system_info(Name))
