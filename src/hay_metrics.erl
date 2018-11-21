@@ -1,12 +1,41 @@
 -module(hay_metrics).
--include("hay_metrics.hrl").
 
 -export([construct/3]).
+-export([type/1]).
+-export([key/1]).
+-export([value/1]).
+
 -export([register/1]).
 -export([push/1]).
 -export([get/0]).
 
--spec construct(metric_type(), binary() | list(), term()) -> metric().
+-record(metric, {
+    type    :: metric_type(),
+    key     :: metric_key(),
+    value   :: metric_value()
+}).
+
+-opaque metric() :: #metric{}.
+-type metric_type() :: meter | gauge.
+-type metric_key() :: binary().
+-type metric_raw_key() ::
+      atom()
+    | integer()
+    | binary()
+    | maybe_improper_list(metric_raw_key(), metric_raw_key()).
+-type metric_value() :: number().
+
+-type register_error() ::
+    {already_registered, {metric_key(), Type :: metric_type(), RegisteredType :: metric_type()}}.
+
+-export_type([metric/0]).
+-export_type([metric_type/0]).
+-export_type([metric_key/0]).
+-export_type([metric_raw_key/0]).
+-export_type([metric_value/0]).
+-export_type([register_error/0]).
+
+-spec construct(metric_type(), metric_raw_key(), metric_value()) -> metric().
 construct(Type, Key, Val) ->
     #metric{
         type    = Type,
@@ -14,7 +43,19 @@ construct(Type, Key, Val) ->
         value   = Val
     }.
 
--spec register(metric()) -> ok | {error, already_registered}.
+-spec type(metric()) -> metric_type().
+type(#metric{type = Type}) ->
+    Type.
+
+-spec key(metric()) -> metric_key().
+key(#metric{key = Key}) ->
+    Key.
+
+-spec value(metric()) -> metric_value().
+value(#metric{value = Val}) ->
+    Val.
+
+-spec register(metric()) -> ok | {error, register_error()}.
 register(#metric{type = Type, key = Key}) ->
     register_if_not_exist(Type, Key).
 
@@ -40,26 +81,23 @@ get() ->
 
 -define(SEPARATOR, $.).
 
-construct_key(Bin) when is_binary(Bin) andalso byte_size(Bin) > 0 ->
+-spec construct_key(metric_raw_key()) -> metric_key().
+construct_key(Bin) when is_binary(Bin) ->
     Bin;
-construct_key([FirstKey | KeyList]) ->
-    lists:foldl(
-        fun(Key, Acc) ->
-            BinKey = key_to_binary(Key),
-            <<Acc/binary, ?SEPARATOR, BinKey/binary>>
-        end,
-        key_to_binary(FirstKey),
-        KeyList
-    ).
-
-key_to_binary(Bin) when is_binary(Bin) ->
-    Bin;
-key_to_binary(Atom) when is_atom(Atom) ->
+construct_key(Atom) when is_atom(Atom) ->
     erlang:atom_to_binary(Atom, utf8);
-key_to_binary(Int) when is_integer(Int) ->
+construct_key(Int) when is_integer(Int) ->
     erlang:integer_to_binary(Int);
-key_to_binary(String) when is_list(String) ->
-    unicode:characters_to_binary(String, utf8).
+construct_key([Head | List]) when is_list(List) ->
+    construct_key(List, construct_key(Head)).
+
+-spec construct_key(metric_raw_key(), binary()) -> metric_key().
+construct_key([], Acc) ->
+    Acc;
+construct_key([Head | Tail], Acc) ->
+    construct_key(Tail, <<Acc/binary, ?SEPARATOR, (construct_key(Head))/binary>>);
+construct_key(NonList, Acc) ->
+    <<Acc/binary, ?SEPARATOR, (construct_key(NonList))/binary>>.
 
 register_if_not_exist(Type, Key) ->
     case check_metric_exist(Type, Key) of
@@ -67,9 +105,9 @@ register_if_not_exist(Type, Key) ->
             ok;
         {error, nonexistent_metric} ->
             register_(Type, Key);
-        {error, wrong_type} ->
+        {error, {wrong_type, OtherType}} ->
             % already registered with other type
-            {error, already_registered}
+            {error, {already_registered, Key, Type, OtherType}}
     end.
 
 register_(meter, Key) ->
@@ -81,8 +119,8 @@ check_metric_exist(Type, Key) ->
     case folsom_metrics:get_metric_info(Key) of
         [{Key, [{type, Type}, _]}] ->
             ok;
-        [{Key, [{type, _OtherType}, _]}] ->
-            {error, wrong_type};
+        [{Key, [{type, OtherType}, _]}] ->
+            {error, {wrong_type, OtherType}};
         [{error, Key, nonexistent_metric}] ->
             {error, nonexistent_metric}
     end.
