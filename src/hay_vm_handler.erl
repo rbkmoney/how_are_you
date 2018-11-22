@@ -81,17 +81,32 @@ gather_load_stats() ->
     ].
 
 gather_vm_info() ->
-    Names = [
+    [
+        hay_metrics:construct(gauge, [<<"vm">>, <<"info">>, Name], erlang:system_info(Name))
+        || Name <- get_vm_info_keys()
+    ].
+
+-ifdef(OTP_RELEASE).
+-if(?OTP_RELEASE >= 21).
+get_vm_info_keys() ->
+    [
         atom_count, atom_limit,
         ets_count, ets_limit,
         port_count, port_limit,
         process_count, process_limit,
-        schedulers_online
-    ],
-    [
-        hay_metrics:construct(gauge, [<<"vm">>, <<"info">>, Name], erlang:system_info(Name))
-        || Name <- Names
+        schedulers_online,
+        dirty_cpu_schedulers_online,
+        dirty_io_schedulers
     ].
+-endif.
+-else.
+get_vm_info_keys() ->
+    [
+        port_count, port_limit,
+        process_count, process_limit,
+        schedulers_online
+    ].
+-endif.
 
 get_statistics_counter(Key) ->
     case erlang:statistics(Key) of
