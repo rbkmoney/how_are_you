@@ -66,7 +66,7 @@ metric_push(Metric) ->
     {ok, {supervisor:sup_flags(), [supervisor:child_spec()]}}.
 
 init([]) ->
-    SupFlags = #{strategy => one_for_one, intensity => 1, period => 60},
+    SupFlags = #{strategy => one_for_one, intensity => 100, period => 10},
     ChildSpec = get_child_specs(),
     {ok, {SupFlags, ChildSpec}}.
 
