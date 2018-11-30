@@ -41,7 +41,7 @@
 start_link(Handler) when is_atom(Handler) ->
     start_link({Handler, #{}});
 start_link({Handler, Options}) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, {Handler, Options}, []).
+    gen_server:start_link(?MODULE, {Handler, Options}, []).
 
 %% 
 

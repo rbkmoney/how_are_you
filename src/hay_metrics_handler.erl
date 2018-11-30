@@ -24,7 +24,7 @@
 -spec start_link(Handler :: module()) -> {ok, pid()} | {error, term()}.
 
 start_link(Handler) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, Handler, []).
+    gen_server:start_link(?MODULE, Handler, []).
 
 %%
 
