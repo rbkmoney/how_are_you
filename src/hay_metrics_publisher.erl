@@ -36,7 +36,7 @@
 
 %% API
 
--spec start_link({handler(), handler_options()}) -> {ok, pid()} | {error, term()}.
+-spec start_link(handler() | {handler(), handler_options()}) -> {ok, pid()} | {error, term()}.
 
 start_link(Handler) when is_atom(Handler) ->
     start_link({Handler, #{}});
