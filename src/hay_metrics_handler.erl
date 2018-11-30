@@ -3,7 +3,7 @@
 
 %%
 -callback init(handler_options()) -> {ok, handler_state()} | {error, Reason :: term()}.
--callback get_interval(handler_state()) -> pos_integer().
+-callback get_interval(handler_state()) -> timeout().
 -callback gather_metrics(handler_state()) -> [hay_metrics:metric()].
 
 -export([start_link/1]).
@@ -44,7 +44,7 @@ start_link({Handler, Options}) ->
 
 %%
 
--spec init({handler(), handler_options()}) -> {ok, state(), timeout()}.
+-spec init({handler(), handler_options()}) -> {ok, state()}.
 
 init({Handler, Options}) ->
     {ok, HandlerState} = Handler:init(Options),

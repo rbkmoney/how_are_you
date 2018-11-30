@@ -45,7 +45,7 @@ start_link({Handler, Options}) ->
 
 %% 
 
--spec init({handler(), handler_options()}) -> {ok, state(), timeout()}.
+-spec init({handler(), handler_options()}) -> {ok, state()}.
 
 init({Handler, Options}) ->
     {ok, HandlerState} = Handler:init(Options),
