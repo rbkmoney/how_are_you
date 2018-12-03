@@ -103,7 +103,7 @@ get_metrics_handlers() ->
     application:get_env(?MODULE, metrics_handlers, [hay_vm_handler]).
 
 get_publishers_handlers() ->
-    application:get_env(?MODULE, publishers, [hay_statsd_publisher]).
+    application:get_env(?MODULE, metrics_publishers, [hay_statsd_publisher]).
 
 %% Application callbacks
 
