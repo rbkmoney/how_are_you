@@ -3,16 +3,39 @@
 
 %%%
 
--export([get_interval/0]).
--export([gather_metrics/0]).
+-export([init/1]).
+-export([get_interval/1]).
+-export([gather_metrics/1]).
 
-%%
--spec get_interval() -> pos_integer().
-get_interval() ->
-    2000.
+%% Types
 
--spec gather_metrics() -> [hay_metrics:metric()].
-gather_metrics() ->
+-type options() :: #{
+    interval => timeout()
+}.
+
+-export_type([options/0]).
+
+%% Internal types
+
+-record(state, {
+    interval :: timeout()
+}).
+-type state() :: #state{}.
+
+%% API
+
+-spec init(options()) -> {ok, state()}.
+init(Options) ->
+    {ok, #state{
+        interval = maps:get(interval, Options, 1000)
+    }}.
+
+-spec get_interval(state()) -> timeout().
+get_interval(#state{interval = Interval}) ->
+    Interval.
+
+-spec gather_metrics(state()) -> [hay_metrics:metric()].
+gather_metrics(_State) ->
     lists:flatten([
         gather_vm_memory(),
         gather_io_stat(),

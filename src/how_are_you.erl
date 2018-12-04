@@ -66,7 +66,7 @@ metric_push(Metric) ->
     {ok, {supervisor:sup_flags(), [supervisor:child_spec()]}}.
 
 init([]) ->
-    SupFlags = #{strategy => one_for_one, intensity => 1, period => 60},
+    SupFlags = #{strategy => one_for_one, intensity => 100, period => 10},
     ChildSpec = get_child_specs(),
     {ok, {SupFlags, ChildSpec}}.
 
@@ -100,10 +100,10 @@ get_publishers_handlers_specs() ->
     ).
 
 get_metrics_handlers() ->
-    [hay_vm_handler].
+    application:get_env(?MODULE, metrics_handlers, [hay_vm_handler]).
 
 get_publishers_handlers() ->
-    [hay_statsd_publisher].
+    application:get_env(?MODULE, metrics_publishers, [hay_statsd_publisher]).
 
 %% Application callbacks
 

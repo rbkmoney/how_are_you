@@ -2,8 +2,10 @@
 -behaviour(gen_server).
 
 %%
--callback get_interval() -> pos_integer().
--callback publish_metric(hay_metrics:metric()) -> ok | {error, Reason :: term()}.
+-callback init(handler_options()) -> {ok, handler_state()} | {error, Reason :: term()}.
+-callback get_interval(handler_state()) -> timeout().
+-callback publish_metrics([hay_metrics:metric()], handler_state()) ->
+    {ok, handler_state()} | {error, Reason :: term()}.
 
 -export([start_link/1]).
 
@@ -19,26 +21,35 @@
 -define(SERVER, ?MODULE).
 -define(DEFAULT_INTERVAL, 5000).
 
-%%
-
--spec start_link(Handler :: module()) -> {ok, pid()} | {error, term()}.
-
-start_link(Handler) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, Handler, []).
-
-%%
+%% Internal types
 
 -record(state, {
     handler :: module(),
+    handler_state :: handler_state(),
     timer = undefined :: undefined | reference()
 }).
 
 -type state() :: #state{}.
+-type handler_options() :: any() | undefined.
+-type handler_state() :: any().
+-type handler() :: module().
 
--spec init(Handler :: module()) -> {ok, state(), 0}.
+%% API
 
-init(Handler) ->
-    {ok, #state{handler = Handler}, Handler:get_interval()}.
+-spec start_link(handler() | {handler(), handler_options()}) -> {ok, pid()} | {error, term()}.
+
+start_link(Handler) when is_atom(Handler) ->
+    start_link({Handler, #{}});
+start_link({Handler, Options}) ->
+    gen_server:start_link(?MODULE, {Handler, Options}, []).
+
+%% 
+
+-spec init({handler(), handler_options()}) -> {ok, state()}.
+
+init({Handler, Options}) ->
+    {ok, HandlerState} = Handler:init(Options),
+    {ok, start_timer(#state{handler = Handler, handler_state = HandlerState})}.
 
 -spec handle_call(term(), {pid(), term()}, state()) -> {noreply, state()}.
 
@@ -52,11 +63,11 @@ handle_cast(_Msg, State) ->
 
 -spec handle_info(term(), state()) -> {noreply, state()}.
 
-handle_info(timeout, #state{handler = Handler} = State) ->
+handle_info(timeout, #state{handler = Handler, handler_state = HandlerState} = State) ->
     %% TODO add some sort of monitoring
     %% to prevent metrics overloading entire system
-    ok = publish_metrics(Handler, hay_metrics:get()),
-    {noreply, restart_timer(State)};
+    {ok, NewHandlerState} = Handler:publish_metrics(hay_metrics:get(), HandlerState),
+    {noreply, restart_timer(State#state{handler_state = NewHandlerState})};
 
 handle_info(_Msg, State) ->
     {noreply, State}.
@@ -71,11 +82,6 @@ code_change(_OldVsn, _State, _Extra) ->
 
 %% internal
 
-publish_metrics(Handler, Metrics) ->
-    %% TODO handle errors maybe?
-    _ = [Handler:publish_metric(M) || M <- Metrics],
-    ok.
-
 -spec restart_timer(state()) -> state().
 
 restart_timer(State = #state{timer = undefined}) ->
@@ -87,6 +93,6 @@ restart_timer(State = #state{timer = TimerRef}) ->
 
 -spec start_timer(state()) -> state().
 
-start_timer(State = #state{timer = undefined, handler = Handler}) ->
-    Interval = Handler:get_interval(),
+start_timer(State = #state{timer = undefined, handler = Handler, handler_state = HandlerState}) ->
+    Interval = Handler:get_interval(HandlerState),
     State#state{timer = erlang:send_after(Interval, self(), timeout)}.

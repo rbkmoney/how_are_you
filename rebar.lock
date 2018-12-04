@@ -1,22 +1,10 @@
 {"1.1.0",
 [{<<"bear">>,{pkg,<<"bear">>,<<"0.8.7">>},1},
- {<<"foil">>,{pkg,<<"foil">>,<<"0.1.0">>},1},
  {<<"folsom">>,
   {git,"git@github.com:folsom-project/folsom.git",
        {ref,"9309bad9ffadeebbefe97521577c7480c7cfcd8a"}},
-  0},
- {<<"granderl">>,{pkg,<<"granderl">>,<<"0.1.5">>},1},
- {<<"metal">>,{pkg,<<"metal">>,<<"0.1.1">>},1},
- {<<"parse_trans">>,{pkg,<<"parse_trans">>,<<"3.0.0">>},1},
- {<<"statsderl">>,
-  {git,"git@github.com:lpgauth/statsderl.git",
-       {ref,"f79bd06eaaafe760a05728a3a78f6c41e01a8047"}},
   0}]}.
 [
 {pkg_hash,[
- {<<"bear">>, <<"16264309AE5D005D03718A5C82641FCC259C9E8F09ADEB6FD79CA4271168656F">>},
- {<<"foil">>, <<"16406493144743F633505E51406F7BE6BF17A3772DFD62BCDE3107C654704BEE">>},
- {<<"granderl">>, <<"F20077A68BD80B8D8783BD15A052813C6483771DEC1A5B837D307CBE92F14122">>},
- {<<"metal">>, <<"5D3D1322DA7BCD34B94FED5486F577973685298883954F7A3E517EF5EF6953F5">>},
- {<<"parse_trans">>, <<"9E96B1C9C3A0DF54E7B76F8F685D38BFA1EB21B31E042B1D1A5A70258E4DB1E3">>}]}
+ {<<"bear">>, <<"16264309AE5D005D03718A5C82641FCC259C9E8F09ADEB6FD79CA4271168656F">>}]}
 ].

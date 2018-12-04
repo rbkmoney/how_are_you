@@ -9,8 +9,7 @@
         kernel,
         stdlib,
         os_mon,
-        folsom,
-        statsderl
+        folsom
     ]},
     {env, []},
     {modules, []},

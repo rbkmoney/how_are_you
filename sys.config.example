@@ -1,0 +1,18 @@
+[
+    {how_are_you, [
+        {metrics_handlers, [
+            {hay_vm_handler, #{
+                interval => 1000
+            }}
+        ]},
+        {metrics_publishers, [
+            {hay_statsd_publisher, #{
+                interval => 1000,
+                host => "localhost",
+                port => 8125,
+                mtu => 1500,
+                socket_opts => []  % inet, inet6 and other gen_udp:open options
+            }}
+        ]}
+    ]}
+].
