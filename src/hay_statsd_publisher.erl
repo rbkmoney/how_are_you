@@ -11,6 +11,7 @@
 -type port_number() :: inet:port_number().
 
 -type options() :: #{
+    key_prefix => binary(),
     interval => timeout(),
     host => host(),
     port => port_number(),
@@ -35,6 +36,7 @@
 %% Internal types
 
 -record(state, {
+    key_prefix :: binary(),
     interval :: timeout(),
     host :: host(),
     port :: port_number(),
@@ -50,6 +52,7 @@
 -spec init(options()) -> {ok, state()}.
 init(Options) ->
     {ok, #state{
+        key_prefix = maps:get(key_prefix, Options, <<"">>),
         interval = maps:get(interval, Options, 1000),
         host = maps:get(host, Options, "localhost"),
         port = maps:get(port, Options, 8125),
@@ -87,8 +90,8 @@ encode_packets([], _State, Acc, [], _Size) ->
     Acc;
 encode_packets([], _State, Acc, PacketAcc, _Size) ->
     [PacketAcc | Acc];
-encode_packets([Metric | Rest], #state{mtu = MTU} = State, Acc, PacketAcc, Size) ->
-    MetricBin = hay_statsd_protocol:encode_metric(Metric),
+encode_packets([Metric | Rest], #state{mtu = MTU, key_prefix = Prefix} = State, Acc, PacketAcc, Size) ->
+    MetricBin = hay_statsd_protocol:encode_metric(Metric, Prefix),
     MetricSize = erlang:byte_size(MetricBin),
     case Size + MetricSize of
         TotalSize when TotalSize > MTU ->

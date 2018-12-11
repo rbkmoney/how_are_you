@@ -1,15 +1,15 @@
 -module(hay_statsd_protocol).
 
--export([encode_metric/1]).
+-export([encode_metric/2]).
 
 %% API
 
--spec encode_metric(hay_metrics:metric()) -> binary().
-encode_metric(Metric) ->
+-spec encode_metric(hay_metrics:metric(), binary()) -> binary().
+encode_metric(Metric, Prefix) ->
     Type = hay_metrics:type(Metric),
     Key = hay_metrics:key(Metric),
     Value = hay_metrics:value(Metric),
-    <<Key/binary, ":", (format_value(Value))/binary, "|", (encode_type(Type)):8, "\n">>.
+    <<Prefix/binary, Key/binary, ":", (format_value(Value))/binary, "|", (encode_type(Type)):8, "\n">>.
 
 %% Internals
 
