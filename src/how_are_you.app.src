@@ -9,6 +9,7 @@
         kernel,
         stdlib,
         os_mon,
+        cg_mon,
         folsom
     ]},
     {env, []},
