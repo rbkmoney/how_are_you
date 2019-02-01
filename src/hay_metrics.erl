@@ -116,7 +116,7 @@ register_if_not_exist(Type, Key) ->
 -spec register_(metric_type(), metric_key()) ->
     ok | {error, register_error()}.
 register_(counter, Key) ->
-    folsom_metrics:new_meter(Key);
+    folsom_metrics:new_counter(Key);
 register_(gauge, Key) ->
     folsom_metrics:new_gauge(Key).
 
