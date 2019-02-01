@@ -185,7 +185,8 @@ fold_gauges(Fun, FolderAcc) ->
     Value :: integer(),
     FolderAcc :: any().
 do_fold_gauges({Key, Value}, {Folder, FolderAcc}) ->
-    NewFolderAcc = Folder(#metric{
+    NewFolderAcc = Folder(
+        #metric{
             type  = gauge,
             key   = Key,
             value = Value
