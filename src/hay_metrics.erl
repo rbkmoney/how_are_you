@@ -152,7 +152,7 @@ sum_counters({{CounterKey, _Part}, Value}, Table) ->
     _ = try
         ets:update_counter(Table, CounterKey, Value)
     catch
-        error:badard ->
+        error:badarg ->
             true = ets:insert(Table, {CounterKey, Value})
     end,
     Table.
