@@ -163,7 +163,8 @@ sum_counters({{CounterKey, _Part}, Value}, Table) ->
     Value :: integer(),
     FolderAcc :: any().
 do_fold_counters({Key, Value}, {Folder, FolderAcc}) ->
-    NewFolderAcc = Folder(#metric{
+    NewFolderAcc = Folder(
+        #metric{
             type  = counter,
             key   = Key,
             value = Value
@@ -176,7 +177,7 @@ do_fold_counters({Key, Value}, {Folder, FolderAcc}) ->
     FolderAcc :: any().
 fold_gauges(Fun, FolderAcc) ->
     % TODO: Use public folsom interfaces
-    {Fun, NewFolderAcc} = ets:foldl(fun do_fold_gauges/2, {Fun, FolderAcc}, folsom_counters),
+    {Fun, NewFolderAcc} = ets:foldl(fun do_fold_gauges/2, {Fun, FolderAcc}, folsom_gauges),
     NewFolderAcc.
 
 -spec do_fold_gauges({Key, Value}, Acc) -> Acc when
