@@ -72,7 +72,7 @@ handle_cast(_Msg, State) ->
 handle_info(timeout, #state{handler = Handler, handler_state = HandlerState} = State) ->
     %% TODO add some sort of monitoring
     %% to prevent metrics overloading entire system
-    {ok, NewHandlerState} = Handler:publish_metric(fun hay_metrics:fold/2, HandlerState),
+    {ok, NewHandlerState} = Handler:publish_metrics(fun hay_metrics:fold/2, HandlerState),
     {noreply, restart_timer(State#state{handler_state = NewHandlerState})};
 
 handle_info(_Msg, State) ->
