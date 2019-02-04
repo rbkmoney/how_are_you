@@ -149,12 +149,7 @@ fold_counters(Fun, FolderAcc) ->
     Key :: {metric_key(), integer()},
     Value :: integer().
 sum_counters({{CounterKey, _Part}, Value}, Table) ->
-    _ = try
-        ets:update_counter(Table, CounterKey, Value)
-    catch
-        error:badarg ->
-            true = ets:insert(Table, {CounterKey, Value})
-    end,
+    _ = ets:update_counter(Table, CounterKey, Value, {CounterKey, Value}),
     Table.
 
 -spec do_fold_counters({Key, Value}, Acc) -> Acc when
