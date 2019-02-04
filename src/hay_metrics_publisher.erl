@@ -4,7 +4,7 @@
 %%
 -callback init(handler_options()) -> {ok, handler_state()} | {error, Reason :: term()}.
 -callback get_interval(handler_state()) -> timeout().
--callback publish_metrics([hay_metrics:metric()], handler_state()) ->
+-callback publish_metrics(metric_fold(), handler_state()) ->
     {ok, handler_state()} | {error, Reason :: term()}.
 
 -export([start_link/1]).
@@ -20,6 +20,12 @@
 
 -define(SERVER, ?MODULE).
 -define(DEFAULT_INTERVAL, 5000).
+
+-type metric_folder(Acc) :: fun((hay_metrics:metric(), Acc) -> Acc).
+-type metric_fold() :: fun((metric_folder(Acc), Acc) -> Acc).
+
+-export_type([metric_folder/1]).
+-export_type([metric_fold/0]).
 
 %% Internal types
 
@@ -43,7 +49,7 @@ start_link(Handler) when is_atom(Handler) ->
 start_link({Handler, Options}) ->
     gen_server:start_link(?MODULE, {Handler, Options}, []).
 
-%% 
+%%
 
 -spec init({handler(), handler_options()}) -> {ok, state()}.
 
@@ -66,7 +72,7 @@ handle_cast(_Msg, State) ->
 handle_info(timeout, #state{handler = Handler, handler_state = HandlerState} = State) ->
     %% TODO add some sort of monitoring
     %% to prevent metrics overloading entire system
-    {ok, NewHandlerState} = Handler:publish_metrics(hay_metrics:get(), HandlerState),
+    {ok, NewHandlerState} = Handler:publish_metrics(fun hay_metrics:fold/2, HandlerState),
     {noreply, restart_timer(State#state{handler_state = NewHandlerState})};
 
 handle_info(_Msg, State) ->

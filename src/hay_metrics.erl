@@ -8,6 +8,7 @@
 -export([register/1]).
 -export([push/1]).
 -export([get/0]).
+-export([fold/2]).
 
 -record(metric, {
     type    :: metric_type(),
@@ -16,7 +17,7 @@
 }).
 
 -opaque metric() :: #metric{}.
--type metric_type() :: meter | gauge.
+-type metric_type() :: counter | gauge.
 -type metric_key() :: binary().
 -type metric_raw_key() ::
       atom()
@@ -34,6 +35,12 @@
 -export_type([metric_raw_key/0]).
 -export_type([metric_value/0]).
 -export_type([register_error/0]).
+
+%% Internal types
+
+-type metric_folder() :: fun((hay_metrics:metric(), Acc) -> Acc).
+
+%% API
 
 -spec construct(metric_type(), metric_raw_key(), metric_value()) -> metric().
 construct(Type, Key, Val) ->
@@ -65,17 +72,13 @@ push(#metric{type = Type, key = Key, value = Val}) ->
 
 -spec get() -> [metric()].
 get() ->
-    FolsomInfo = folsom_metrics:get_metrics_info(),
-    lists:foldl(
-        fun
-            ({Key, [{type, Type}, _]}, Acc) when Type =:= meter orelse Type =:= gauge ->
-                [get(Type, Key) | Acc];
-            (_, Acc) ->
-                Acc
-        end,
-        [],
-        FolsomInfo
-    ).
+    fold(fun(M, Acc) -> [M | Acc] end, []).
+
+-spec fold(metric_folder(), Acc) -> Acc when
+    Acc :: any().
+fold(Fun, Acc0) ->
+    Acc1 = fold_counters(Fun, Acc0),
+    fold_gauges(Fun, Acc1).
 
 %% Internals
 
@@ -110,8 +113,10 @@ register_if_not_exist(Type, Key) ->
             {error, {already_registered, Key, Type, OtherType}}
     end.
 
-register_(meter, Key) ->
-    folsom_metrics:new_meter(Key);
+-spec register_(metric_type(), metric_key()) ->
+    ok | {error, register_error()}.
+register_(counter, Key) ->
+    folsom_metrics:new_counter(Key);
 register_(gauge, Key) ->
     folsom_metrics:new_gauge(Key).
 
@@ -125,22 +130,42 @@ check_metric_exist(Type, Key) ->
             {error, nonexistent_metric}
     end.
 
-push(meter, Key, Val) ->
-    folsom_metrics:notify({Key, Val});
+push(counter, Key, Val) ->
+    folsom_metrics:notify(Key, {inc, Val});
 push(gauge, Key, Val) ->
-    folsom_metrics:notify({Key, Val}).
+    folsom_metrics:notify(Key, Val).
 
-get(gauge, Key) ->
-    #metric{
-        type    = gauge,
-        key     = Key,
-        value   = folsom_metrics:get_metric_value(Key)
-    };
-get(meter, Key) ->
-    Meter = folsom_metrics:get_metric_value(Key),
-    Val = proplists:get_value(count, Meter, 0),
-    #metric{
-        type    = meter,
-        key     = Key,
-        value   = Val
-    }.
+-spec fold_counters(metric_folder(), FolderAcc) -> FolderAcc when
+    FolderAcc :: any().
+fold_counters(Fun, FolderAcc) ->
+    Aggregation = ets:new(?MODULE, [set, private, {write_concurrency, false}, {read_concurrency, false}]),
+    % TODO: Use public folsom interfaces
+    Aggregation = ets:foldl(fun sum_counters/2, Aggregation, folsom_counters),
+    NewFolderAcc = ets:foldl(
+        fun({Key, Value}, Acc) ->
+            Fun(#metric{type = counter, key = Key, value = Value}, Acc)
+        end,
+        FolderAcc,
+        Aggregation
+    ),
+    true = ets:delete(Aggregation),
+    NewFolderAcc.
+
+-spec sum_counters({Key, Value}, ets:tid()) -> ets:tid() when
+    Key :: {metric_key(), integer()},
+    Value :: integer().
+sum_counters({{CounterKey, _Part}, Value}, Table) ->
+    _ = ets:update_counter(Table, CounterKey, Value, {CounterKey, Value}),
+    Table.
+
+-spec fold_gauges(metric_folder(), FolderAcc) -> FolderAcc when
+    FolderAcc :: any().
+fold_gauges(Fun, FolderAcc) ->
+    % TODO: Use public folsom interfaces
+    ets:foldl(
+        fun({Key, Value}, Acc) ->
+            Fun(#metric{type = gauge, key = Key, value = Value}, Acc)
+        end,
+        FolderAcc,
+        folsom_gauges
+    ).

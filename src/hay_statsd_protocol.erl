@@ -14,7 +14,7 @@ encode_metric(Metric, Prefix) ->
 %% Internals
 
 -spec encode_type(hay_metrics:metric_type()) -> byte().
-encode_type(meter) ->
+encode_type(counter) ->
     %% We aggregate metrics in folsom. So just push final number
     $g;
 encode_type(gauge) ->
