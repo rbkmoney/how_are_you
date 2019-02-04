@@ -141,7 +141,13 @@ fold_counters(Fun, FolderAcc) ->
     Aggregation = ets:new(?MODULE, [set, private, {write_concurrency, false}, {read_concurrency, false}]),
     % TODO: Use public folsom interfaces
     Aggregation = ets:foldl(fun sum_counters/2, Aggregation, folsom_counters),
-    {Fun, NewFolderAcc} = ets:foldl(fun do_fold_counters/2, {Fun, FolderAcc}, Aggregation),
+    NewFolderAcc = ets:foldl(
+        fun({Key, Value}, Acc) ->
+            Fun(#metric{type = counter, key = Key, value = Value}, Acc)
+        end,
+        FolderAcc,
+        Aggregation
+    ),
     true = ets:delete(Aggregation),
     NewFolderAcc.
 
@@ -152,41 +158,14 @@ sum_counters({{CounterKey, _Part}, Value}, Table) ->
     _ = ets:update_counter(Table, CounterKey, Value, {CounterKey, Value}),
     Table.
 
--spec do_fold_counters({Key, Value}, Acc) -> Acc when
-    Acc :: {metric_folder(), FolderAcc},
-    Key :: metric_key(),
-    Value :: integer(),
-    FolderAcc :: any().
-do_fold_counters({Key, Value}, {Folder, FolderAcc}) ->
-    NewFolderAcc = Folder(
-        #metric{
-            type  = counter,
-            key   = Key,
-            value = Value
-        },
-        FolderAcc
-    ),
-    {Folder, NewFolderAcc}.
-
 -spec fold_gauges(metric_folder(), FolderAcc) -> FolderAcc when
     FolderAcc :: any().
 fold_gauges(Fun, FolderAcc) ->
     % TODO: Use public folsom interfaces
-    {Fun, NewFolderAcc} = ets:foldl(fun do_fold_gauges/2, {Fun, FolderAcc}, folsom_gauges),
-    NewFolderAcc.
-
--spec do_fold_gauges({Key, Value}, Acc) -> Acc when
-    Acc :: {metric_folder(), FolderAcc},
-    Key :: metric_key(),
-    Value :: integer(),
-    FolderAcc :: any().
-do_fold_gauges({Key, Value}, {Folder, FolderAcc}) ->
-    NewFolderAcc = Folder(
-        #metric{
-            type  = gauge,
-            key   = Key,
-            value = Value
-        },
-        FolderAcc
-    ),
-    {Folder, NewFolderAcc}.
+    ets:foldl(
+        fun({Key, Value}, Acc) ->
+            Fun(#metric{type = gauge, key = Key, value = Value}, Acc)
+        end,
+        FolderAcc,
+        folsom_gauges
+    ).
