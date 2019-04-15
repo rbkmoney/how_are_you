@@ -68,7 +68,13 @@ register(#metric{type = Type, key = Key}) ->
 
 -spec push(metric()) -> ok.
 push(#metric{type = Type, key = Key, value = Val}) ->
-    push(Type, Key, Val).
+    case push(Type, Key, Val) of
+        ok ->
+            ok;
+        {error, _, nonexistent_metric} ->
+            ok = register_if_not_exist(Type, Key),
+            ok = push(Type, Key, Val)
+    end.
 
 -spec get() -> [metric()].
 get() ->
