@@ -26,6 +26,7 @@
 
 -spec init(options()) -> {ok, state()}.
 init(Options) ->
+    erlang:system_flag(scheduler_wall_time, true),
     {ok, #state{
         interval = maps:get(interval, Options, 1000)
     }}.
@@ -41,7 +42,8 @@ gather_metrics(_State) ->
         gather_io_stat(),
         gather_system_memory(),
         gather_load_stats(),
-        gather_vm_info()
+        gather_vm_info(),
+        gather_scheduler_utilization()
     ]).
 
 gather_vm_memory() ->
@@ -90,14 +92,7 @@ gather_system_memory() ->
     ].
 
 gather_load_stats() ->
-    Names = [
-        total_run_queue_lengths,
-        total_active_tasks,
-        context_switches,
-        reductions,
-        wall_clock,
-        runtime
-    ],
+    Names = gather_load_stat_keys(),
     [
         hay_metrics:construct(gauge, [<<"vm">>, <<"load">>, Name], get_statistics_counter(Name))
         || Name <- Names
@@ -111,23 +106,42 @@ gather_vm_info() ->
 
 -ifdef(OTP_RELEASE).
 -if(?OTP_RELEASE >= 21).
+gather_load_stat_keys() ->
+    [
+        total_run_queue_lengths,
+        total_run_queue_lengths_all, %% With dirty schedulers
+        total_active_tasks,
+        context_switches,
+        reductions,
+        wall_clock,
+        runtime
+    ].
 get_vm_info_keys() ->
     [
         atom_count, atom_limit,
         ets_count, ets_limit,
         port_count, port_limit,
         process_count, process_limit,
-        schedulers_online,
+        schedulers, schedulers_online,
         dirty_cpu_schedulers_online,
         dirty_io_schedulers
     ].
 -endif.
 -else.
+gather_load_stat_keys() ->
+    [
+        total_run_queue_lengths,
+        total_active_tasks,
+        context_switches,
+        reductions,
+        wall_clock,
+        runtime
+    ].
 get_vm_info_keys() ->
     [
         port_count, port_limit,
         process_count, process_limit,
-        schedulers_online
+        schedulers, schedulers_online
     ].
 -endif.
 
@@ -138,3 +152,16 @@ get_statistics_counter(Key) ->
         Value ->
             Value
     end.
+
+gather_scheduler_utilization() ->
+    NewSwt = erlang:statistics(scheduler_wall_time_all),
+    lists:foldl(
+        fun({N, Active, Total}, Acc) ->
+            [
+                hay_metrics:construct(gauge, [<<"vm">>, <<"load">>, <<"schedulers">>, N, <<"active">>], Active),
+                hay_metrics:construct(gauge, [<<"vm">>, <<"load">>, <<"schedulers">>, N, <<"total">>], Total)
+                | Acc
+            ]
+        end,
+        [],
+        NewSwt).
