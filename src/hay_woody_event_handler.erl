@@ -18,8 +18,9 @@ handle_event(
     'invoke service handler', _RpcId,
     #{function := Function, service_schema := {Handler, Service}},
     _Opts) ->
+        Key = [<<"woody">>, <<"rpc">>, <<"server">>, Handler, Service, Function],
         how_are_you:metric_push(
-            how_are_you:metric_construct(counter, [<<"woody">>, <<"rpc">>, Handler, Service, Function], 1)),
+            how_are_you:metric_construct(counter, Key, 1)),
     ok;
 handle_event(_Event, _RpcId, _Meta, _Opts) ->
     ok.
