@@ -74,30 +74,10 @@ get_child_specs() ->
     get_metrics_handlers_specs() ++ get_publishers_handlers_specs().
 
 get_metrics_handlers_specs() ->
-    lists:map(
-        fun(Handler) ->
-            #{
-                id => Handler,
-                start => {hay_metrics_handler, start_link, [Handler]},
-                restart => permanent,
-                type => worker
-            }
-        end,
-        get_metrics_handlers()
-    ).
+    [hay_metrics_handler:child_spec(H, H) || H <- get_metrics_handlers()].
 
 get_publishers_handlers_specs() ->
-    lists:map(
-        fun(Handler) ->
-            #{
-                id => Handler,
-                start => {hay_metrics_publisher, start_link, [Handler]},
-                restart => permanent,
-                type => worker
-            }
-        end,
-        get_publishers_handlers()
-    ).
+    [hay_metrics_publisher:child_spec(H, H) || H <- get_publishers_handlers()].
 
 get_metrics_handlers() ->
     application:get_env(?MODULE, metrics_handlers, [hay_vm_handler, hay_cgroup_handler]).

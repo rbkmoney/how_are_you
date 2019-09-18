@@ -7,6 +7,7 @@
 -callback gather_metrics(handler_state()) -> [hay_metrics:metric()].
 
 -export([start_link/1]).
+-export([child_spec/2]).
 
 %%
 
@@ -32,10 +33,22 @@
 -type handler_options() :: any() | undefined.
 -type handler_state() :: any().
 -type handler() :: module().
+-type handler_with_options() :: module() | {handler(), handler_options()}.
 
 %% API
 
--spec start_link(handler() | {handler(), handler_options()}) -> {ok, pid()} | {error, term()}.
+-spec child_spec(handler_with_options(), term()) ->
+    supervisor:child_spec().
+
+child_spec(Handler, ChildID) ->
+    #{
+        id => ChildID,
+        start => {?MODULE, start_link, [Handler]},
+        restart => permanent,
+        type => worker
+    }.
+
+-spec start_link(handler_with_options()) -> {ok, pid()} | {error, term()}.
 
 start_link(Handler) when is_atom(Handler) ->
     start_link({Handler, #{}});
