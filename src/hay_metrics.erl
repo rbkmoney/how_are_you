@@ -108,19 +108,26 @@ construct_key([Head | Tail], Acc) ->
 construct_key(NonList, Acc) ->
     <<Acc/binary, ?SEPARATOR, (construct_key(NonList))/binary>>.
 
+-spec register_if_not_exist(metric_type(), metric_key()) -> ok | {error, register_error()}.
 register_if_not_exist(Type, Key) ->
     case check_metric_exist(Type, Key) of
         ok ->
             ok;
         {error, nonexistent_metric} ->
-            register_(Type, Key);
+            case register_(Type, Key) of
+                %% Avoid race condition errors with
+                %% processes tries to push with the same key
+                %% at the same time, when key is not yet registered
+                {error, _, metric_already_exists} ->
+                    ok;
+                Error ->
+                    Error
+            end;
         {error, {wrong_type, OtherType}} ->
             % already registered with other type
             {error, {already_registered, Key, Type, OtherType}}
     end.
 
--spec register_(metric_type(), metric_key()) ->
-    ok | {error, register_error()}.
 register_(counter, Key) ->
     folsom_metrics:new_counter(Key);
 register_(gauge, Key) ->
