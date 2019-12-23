@@ -115,8 +115,8 @@ register_if_not_exist(Type, Key) ->
         {error, nonexistent_metric} ->
             case register_(Type, Key) of
                 %% Avoid race condition errors with
-                %% processes tried to push with the same key
-                %% at the sane time, when key is not yet registered
+                %% processes tries to push with the same key
+                %% at the same time, when key is not yet registered
                 {error, _, metric_already_exists} ->
                     ok;
                 Error -> Error
