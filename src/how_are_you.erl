@@ -21,6 +21,9 @@
 -export([start/2]).
 -export([stop/1]).
 
+
+-export([get_routes/0]).
+
 %% Types
 
 -type metric() :: hay_metrics:metric().
@@ -96,3 +99,12 @@ start(_StartType, _StartArgs) ->
     ok.
 stop(_State) ->
     ok.
+
+-spec get_routes() -> _. % TODO
+get_routes() ->
+    [
+        {'_', [
+            {"/metrics/[:registry]", prometheus_cowboy2_handler, []},
+            {"/", toppage_handler, []}
+        ]}
+    ].

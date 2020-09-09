@@ -129,12 +129,14 @@ register_if_not_exist(Type, Key) ->
     end.
 
 register_(counter, Key) ->
-    folsom_metrics:new_counter(Key);
+    folsom_metrics:new_counter(Key),
+    prometheus_counter:new([{name, Key}]);
 register_(gauge, Key) ->
-    folsom_metrics:new_gauge(Key).
+    folsom_metrics:new_gauge(Key),
+    prometheus_gauge:new([{name, Key}]).
 
 check_metric_exist(Type, Key) ->
-    case folsom_metrics:get_metric_info(Key) of
+    case folsom_metrics:get_metric_info(Key) of % TODO check in prometheus?
         [{Key, [{type, Type}, _]}] ->
             ok;
         [{Key, [{type, OtherType}, _]}] ->
@@ -144,8 +146,10 @@ check_metric_exist(Type, Key) ->
     end.
 
 push(counter, Key, Val) ->
+    prometheus_counter:inc(Key, Val),
     folsom_metrics:notify(Key, {inc, Val});
 push(gauge, Key, Val) ->
+    prometheus_gauge:set(Key, Val),
     folsom_metrics:notify(Key, Val).
 
 -spec fold_counters(metric_folder(), FolderAcc) -> FolderAcc when

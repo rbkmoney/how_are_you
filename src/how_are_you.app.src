@@ -10,7 +10,9 @@
         stdlib,
         os_mon,
         cg_mon,
-        folsom
+        folsom,
+        prometheus,
+        prometheus_cowboy
     ]},
     {env, []},
     {modules, []},
