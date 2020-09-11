@@ -129,10 +129,12 @@ register_if_not_exist(Type, Key) ->
     end.
 
 register_(counter, Key) ->
-    prometheus_counter:new([{name, to_prometheus_key(Key)}, {help, Key}]),
+    PrometheusKey = to_prometheus_key(Key), % prometheus does not allow keys to have periods as a separator
+    prometheus_counter:new([{name, PrometheusKey}, {help, PrometheusKey}]),
     folsom_metrics:new_counter(Key);
 register_(gauge, Key) ->
-    prometheus_gauge:new([{name, to_prometheus_key(Key)}, {help, Key}]),
+    PrometheusKey = to_prometheus_key(Key), % prometheus does not allow keys to have periods as a separator
+    prometheus_gauge:new([{name, PrometheusKey}, {help, PrometheusKey}]),
     folsom_metrics:new_gauge(Key).
 
 check_metric_exist(Type, Key) ->
