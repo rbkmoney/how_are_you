@@ -101,6 +101,6 @@ stop(_State) ->
     ok.
 
 -spec get_route() ->
-    _. % TODO
+    {iodata(), module(), []}.
 get_route() ->
     {"/metrics/[:registry]", prometheus_cowboy2_handler, []}.
