@@ -10,6 +10,8 @@
 -export([get/0]).
 -export([fold/2]).
 
+-include_lib("prometheus/include/prometheus.hrl").
+
 -record(metric, {
     type    :: metric_type(),
     key     :: metric_key(),
@@ -138,6 +140,27 @@ register_(gauge, Key) ->
     folsom_metrics:new_gauge(Key).
 
 check_metric_exist(Type, Key) ->
+    ExistsInPrometheus = check_promethus_metric_exist(Type, Key),
+    ExistsInFolsom = check_folsom_metric_exist(Type, Key),
+    case {ExistsInFolsom, ExistsInPrometheus} of
+        {ok, ok} ->
+            ok;
+        {_, _} ->
+            {error, nonexistent_metric}
+    end.
+
+check_promethus_metric_exist(Type, Key) ->
+    PrometheusKey = to_prometheus_key(Key),
+    Registry = default,
+    case Type of
+        gauge ->
+            prometheus_metric:check_mf_exists(?PROMETHEUS_GAUGE_TABLE, Registry, PrometheusKey);
+        counter ->
+            prometheus_metric:check_mf_exists(?PROMETHEUS_COUNTER_TABLE, Registry, PrometheusKey)
+    end.
+
+
+check_folsom_metric_exist(Type, Key) ->
     case folsom_metrics:get_metric_info(Key) of % TODO check in prometheus?
         [{Key, [{type, Type}, _]}] ->
             ok;
