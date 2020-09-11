@@ -22,7 +22,7 @@
 -export([stop/1]).
 
 
--export([get_routes/0]).
+-export([get_route/0]).
 
 %% Types
 
@@ -100,11 +100,7 @@ start(_StartType, _StartArgs) ->
 stop(_State) ->
     ok.
 
--spec get_routes() -> _. % TODO
-get_routes() ->
-    [
-        {'_', [
-            {"/metrics/[:registry]", prometheus_cowboy2_handler, []},
-            {"/", toppage_handler, []}
-        ]}
-    ].
+-spec get_route() ->
+    _. % TODO
+get_route() ->
+    {"/metrics/[:registry]", prometheus_cowboy2_handler, []}.
