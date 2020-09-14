@@ -10,8 +10,6 @@
 -export([get/0]).
 -export([fold/2]).
 
--include_lib("prometheus/include/prometheus.hrl").
-
 -record(metric, {
     type    :: metric_type(),
     key     :: metric_key(),
@@ -42,6 +40,8 @@
 
 -type metric_folder() :: fun((hay_metrics:metric(), Acc) -> Acc).
 
+-define(BACKENDS, [hay_metrics_prometheus_backend, hay_metrics_folsom_backend]).
+
 %% API
 
 -spec construct(metric_type(), metric_raw_key(), metric_value()) -> metric().
@@ -64,19 +64,33 @@ key(#metric{key = Key}) ->
 value(#metric{value = Val}) ->
     Val.
 
+%%
+
 -spec register(metric()) -> ok | {error, register_error()}.
 register(#metric{type = Type, key = Key}) ->
-    register_if_not_exist(Type, Key).
+    Results = [{Backend, Backend:register(Type, Key)} || Backend <- ?BACKENDS],
+    lists:foldl(
+        fun fold_results/2,
+        ok,
+        Results
+    ).
+
+fold_results({_, ok}, ok) -> % TODO: it's basically a foldwhile, maybe add foldwhile to genlib?
+    ok;
+fold_results(_, {Backend, {error, Error}}) ->
+    {error, {Backend, Error}}; % TODO: try to find a better way to specify failing backend
+fold_results({_, {error, _}} = Error, _) ->
+    Error.
+
 
 -spec push(metric()) -> ok.
 push(#metric{type = Type, key = Key, value = Val}) ->
-    case push(Type, Key, Val) of
-        ok ->
-            ok;
-        {error, _, nonexistent_metric} ->
-            ok = register_if_not_exist(Type, Key),
-            ok = push(Type, Key, Val)
-    end.
+    Results = [{Backend, Backend:push(Type, Key, Val)} || Backend <- ?BACKENDS],
+    lists:foldl(
+        fun fold_results/2,
+        ok,
+        Results
+    ).
 
 -spec get() -> [metric()].
 get() ->
@@ -85,8 +99,7 @@ get() ->
 -spec fold(metric_folder(), Acc) -> Acc when
     Acc :: any().
 fold(Fun, Acc0) ->
-    Acc1 = fold_counters(Fun, Acc0),
-    fold_gauges(Fun, Acc1).
+    hay_metrics_folsom_backend:fold(Fun, Acc0).
 
 %% Internals
 
@@ -109,108 +122,3 @@ construct_key([Head | Tail], Acc) ->
     construct_key(Tail, <<Acc/binary, ?SEPARATOR, (construct_key(Head))/binary>>);
 construct_key(NonList, Acc) ->
     <<Acc/binary, ?SEPARATOR, (construct_key(NonList))/binary>>.
-
--spec register_if_not_exist(metric_type(), metric_key()) -> ok | {error, register_error()}.
-register_if_not_exist(Type, Key) ->
-    case check_metric_exist(Type, Key) of
-        ok ->
-            ok;
-        {error, nonexistent_metric} ->
-            case register_(Type, Key) of
-                %% Avoid race condition errors with
-                %% processes tries to push with the same key
-                %% at the same time, when key is not yet registered
-                {error, _, metric_already_exists} ->
-                    ok;
-                Error ->
-                    Error
-            end;
-        {error, {wrong_type, OtherType}} ->
-            % already registered with other type
-            {error, {already_registered, Key, Type, OtherType}}
-    end.
-
-register_(counter, Key) ->
-    PrometheusKey = to_prometheus_key(Key), % prometheus does not allow keys to have periods as a separator
-    prometheus_counter:new([{name, PrometheusKey}, {help, PrometheusKey}]),
-    folsom_metrics:new_counter(Key);
-register_(gauge, Key) ->
-    PrometheusKey = to_prometheus_key(Key), % prometheus does not allow keys to have periods as a separator
-    prometheus_gauge:new([{name, PrometheusKey}, {help, PrometheusKey}]),
-    folsom_metrics:new_gauge(Key).
-
-check_metric_exist(Type, Key) ->
-    ExistsInPrometheus = check_promethus_metric_exist(Type, Key),
-    ExistsInFolsom = check_folsom_metric_exist(Type, Key),
-    case {ExistsInFolsom, ExistsInPrometheus} of
-        {ok, ok} ->
-            ok;
-        {_, _} ->
-            {error, nonexistent_metric}
-    end.
-
-check_promethus_metric_exist(Type, Key) ->
-    PrometheusKey = to_prometheus_key(Key),
-    Registry = default,
-    case Type of
-        gauge ->
-            prometheus_metric:check_mf_exists(?PROMETHEUS_GAUGE_TABLE, Registry, PrometheusKey);
-        counter ->
-            prometheus_metric:check_mf_exists(?PROMETHEUS_COUNTER_TABLE, Registry, PrometheusKey)
-    end.
-
-
-check_folsom_metric_exist(Type, Key) ->
-    case folsom_metrics:get_metric_info(Key) of % TODO check in prometheus?
-        [{Key, [{type, Type}, _]}] ->
-            ok;
-        [{Key, [{type, OtherType}, _]}] ->
-            {error, {wrong_type, OtherType}};
-        [{error, Key, nonexistent_metric}] ->
-            {error, nonexistent_metric}
-    end.
-
-push(counter, Key, Val) ->
-    prometheus_counter:inc(to_prometheus_key(Key), Val),
-    folsom_metrics:notify(Key, {inc, Val});
-push(gauge, Key, Val) ->
-    prometheus_gauge:set(to_prometheus_key(Key), Val),
-    folsom_metrics:notify(Key, Val).
-
-to_prometheus_key(Key) ->
-    binary:replace(Key, <<".">>, <<"_">>, [global]).
-
--spec fold_counters(metric_folder(), FolderAcc) -> FolderAcc when
-    FolderAcc :: any().
-fold_counters(Fun, FolderAcc) ->
-    Aggregation = ets:new(?MODULE, [set, private, {write_concurrency, false}, {read_concurrency, false}]),
-    % TODO: Use public folsom interfaces
-    Aggregation = ets:foldl(fun sum_counters/2, Aggregation, folsom_counters),
-    NewFolderAcc = ets:foldl(
-        fun({Key, Value}, Acc) ->
-            Fun(#metric{type = counter, key = Key, value = Value}, Acc)
-        end,
-        FolderAcc,
-        Aggregation
-    ),
-    true = ets:delete(Aggregation),
-    NewFolderAcc.
-
--spec sum_counters({Key, Value}, ets:tid()) -> ets:tid() when
-    Key :: {metric_key(), integer()},
-    Value :: integer().
-sum_counters({{CounterKey, _Part}, Value}, Table) ->
-    _ = ets:update_counter(Table, CounterKey, Value, {CounterKey, Value}),
-    Table.
-
--spec fold_gauges(metric_folder(), FolderAcc) -> FolderAcc when
-    FolderAcc :: any().
-fold_gauges(Fun, FolderAcc) ->
-    % TODO: Use public folsom interfaces
-    ets:foldl(
-        fun({Key, Value}, Acc) ->
-            Fun(#metric{type = gauge, key = Key, value = Value}, Acc)
-        end,
-        FolderAcc,
-        folsom_gauges
-    ).
