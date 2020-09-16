@@ -6,17 +6,23 @@
 
 -include_lib("prometheus/include/prometheus.hrl").
 
--define(REGISTRY, default).
+-define(REGISTRY, default). % TODO: config
 
--spec register(_, _) ->
-    _. % TODO
+-type metric_type() :: hay_metrics:metric_type().
+-type metric_key() :: hay_metrics:metric_key().
+-type metric_value() :: hay_metrics:metric_value().
+-type register_error() :: {already_exists, metric_key()}.
+-type push_error() :: {atom(), _}.
+
+-spec register(metric_type(), metric_key()) ->
+    ok | {error, register_error()}.
 
 register(Type, Key) ->
     PrometheusKey = to_prometheus_key(Key),
     register_if_not_exist(Type, PrometheusKey).
 
--spec push(_, _, _) ->
-    _. % TODO
+-spec push(metric_type(), metric_key(), metric_value()) ->
+    ok | {error, push_error()}.
 
 push(Type, Key, Val) ->
     PrometheusKey = to_prometheus_key(Key),
@@ -50,14 +56,22 @@ metric_exists(Type, Key) ->
         _     -> true
     end.
 
-register_(counter, Key) -> % TODO: Catch exceptions
-    prometheus_counter:new([{name, Key}, {help, Key}]); % Maybe rewrite to use dynamic calls
-register_(gauge, Key) ->
-    prometheus_gauge:new([{name, Key}, {help, Key}]).
+register_(Type, Key) ->
+    Spec = [{name, Key}, {help, Key}],
+    Module = case Type of
+        counter -> prometheus_counter;
+        gauge   -> prometheus_gauge
+    end,
+    try Module:new(Spec) of
+        ok ->
+            ok
+        catch error:{mf_already_exists, {?REGISTRY, Key}, _} ->
+            {error, {already_exists, Key}}
+    end.
 
 
 push_(counter, Key, Val) ->
-    prometheus_counter:inc(Key, Val);
+    prometheus_counter:inc(Key, Val); % TODO: catch errors
 push_(gauge, Key, Val) ->
     prometheus_gauge:set(Key, Val).
 

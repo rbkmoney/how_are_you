@@ -9,7 +9,8 @@
 -type metric_type() :: hay_metrics:metric_type().
 -type metric_key() :: hay_metrics:metric_key().
 -type metric_value() :: hay_metrics:metric_value().
--type register_error() :: {already_registered, metric_key(), Type :: metric_type(), RegisteredType :: metric_type()}.
+-type register_error() :: {already_registered, metric_key(), Type :: metric_type(), RegisteredType :: metric_type()}
+    | {unsupported_metric_type, metric_type()}.
 -type push_error() :: {metric_key(), nonexistent_metric}.
 -type metric_folder() :: hay_metrics:metric_folder().
 
@@ -57,10 +58,12 @@ register_if_not_exist(Type, Key) ->
                 %% Avoid race condition errors with
                 %% processes tries to push with the same key
                 %% at the same time, when key is not yet registered
+                ok ->
+                    ok;
                 {error, _, metric_already_exists} ->
                     ok;
-                Error ->
-                    Error
+                {error, Type, unsupported_metric_type} ->
+                    {error,  {unsupported_metric_type, Type}}
             end;
         {error, {wrong_type, OtherType}} ->
             % already registered with other type
