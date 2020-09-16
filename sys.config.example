@@ -14,6 +14,15 @@
                 mtu => 1500,
                 socket_opts => []  % inet, inet6 and other gen_udp:open options
             }}
+        ]},
+        {backends_config, #{
+            prometheus => #{
+                registry => default
+            }
+        }},
+        {metrics_backends, [
+            hay_metrics_prometheus_backend,
+            hay_metrics_folsom_backend
         ]}
     ]}
 ].
