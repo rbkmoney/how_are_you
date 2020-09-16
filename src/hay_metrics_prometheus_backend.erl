@@ -26,11 +26,12 @@ register(Type, Key) ->
 
 push(Type, Key, Val) ->
     PrometheusKey = to_prometheus_key(Key),
-    try push_(Type, PrometheusKey, Val) of
-        ok -> ok
-    catch error:{unknown_metric, ?REGISTRY, PrometheusKey} ->
-        register_(Type, PrometheusKey),
-        push_(Type, PrometheusKey, Val)
+    case push_(Type, PrometheusKey, Val) of
+        ok ->
+            ok;
+        {error, {unknown_metric, PrometheusKey}} ->
+            ok = register_(Type, PrometheusKey),
+            push_(Type, PrometheusKey, Val)
     end.
 
 -spec get() ->
@@ -65,14 +66,22 @@ register_(Type, Key) ->
     try Module:new(Spec) of
         ok ->
             ok
-        catch error:{mf_already_exists, {?REGISTRY, Key}, _} ->
+    catch error:{mf_already_exists, {?REGISTRY, Key}, _} ->
             {error, {already_exists, Key}}
     end.
 
 
-push_(counter, Key, Val) ->
-    prometheus_counter:inc(Key, Val); % TODO: catch errors
-push_(gauge, Key, Val) ->
+push_(Type, Key, Val) ->
+    try  do_push(Type, Key, Val) of
+        ok ->
+            ok
+    catch error:{unknown_metric, ?REGISTRY, Key} ->
+        {error, {unknown_metric, Key}}
+    end.
+
+do_push(counter, Key, Val) ->
+    prometheus_counter:inc(Key, Val);
+do_push(gauge, Key, Val) ->
     prometheus_gauge:set(Key, Val).
 
 % This function relies on my knowledge of used key formats
