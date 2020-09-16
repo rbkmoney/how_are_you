@@ -10,11 +10,7 @@
 -export([get/0]).
 -export([fold/2]).
 
--record(metric, {
-    type    :: metric_type(),
-    key     :: metric_key(),
-    value   :: metric_value()
-}).
+-include_lib("how_are_you/include/how_are_you.hrl").
 
 -opaque metric() :: #metric{}.
 -type metric_type() :: counter | gauge.
@@ -26,19 +22,16 @@
     | maybe_improper_list(metric_raw_key(), metric_raw_key()).
 -type metric_value() :: number().
 
--type register_error() ::
-    {already_registered, {metric_key(), Type :: metric_type(), RegisteredType :: metric_type()}}.
+-type metric_backend_error() :: {error, {module(), _}}.
+-type metric_folder() :: fun((hay_metrics:metric(), Acc) -> Acc).
 
 -export_type([metric/0]).
 -export_type([metric_type/0]).
 -export_type([metric_key/0]).
 -export_type([metric_raw_key/0]).
 -export_type([metric_value/0]).
--export_type([register_error/0]).
-
-%% Internal types
-
--type metric_folder() :: fun((hay_metrics:metric(), Acc) -> Acc).
+-export_type([metric_folder/0]).
+-export_type([metric_backend_error/0]).
 
 -define(BACKENDS, [hay_metrics_prometheus_backend, hay_metrics_folsom_backend]).
 
@@ -66,7 +59,7 @@ value(#metric{value = Val}) ->
 
 %%
 
--spec register(metric()) -> ok | {error, register_error()}.
+-spec register(metric()) -> ok | {error, metric_backend_error()}.
 register(#metric{type = Type, key = Key}) ->
     Results = [{Backend, Backend:register(Type, Key)} || Backend <- ?BACKENDS],
     lists:foldl(
@@ -74,6 +67,9 @@ register(#metric{type = Type, key = Key}) ->
         ok,
         Results
     ).
+
+-spec fold_results({module(), ok | {error, _}}, ok | metric_backend_error()) ->
+    ok | metric_backend_error().
 
 fold_results({_, ok}, ok) -> % TODO: it's basically a foldwhile, maybe add foldwhile to genlib?
     ok;

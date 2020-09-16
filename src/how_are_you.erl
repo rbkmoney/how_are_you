@@ -55,7 +55,7 @@ metric_construct(Type, Key, Val) ->
     hay_metrics:construct(Type, Key, Val).
 
 -spec metric_register(metric()) ->
-    ok | {error, hay_metrics:register_error()}.
+    ok | {error, hay_metrics:metric_backend_error()}.
 metric_register(Metric) ->
     hay_metrics:register(Metric).
 

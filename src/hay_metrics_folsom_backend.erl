@@ -5,48 +5,32 @@
 -export([get/0]).
 -export([fold/2]).
 
--record(metric, {
-    type    :: metric_type(),
-    key     :: metric_key(),
-    value   :: metric_value()
-}).
+-type metric() :: hay_metrics:metric().
+-type metric_type() :: hay_metrics:metric_type().
+-type metric_key() :: hay_metrics:metric_key().
+-type metric_value() :: hay_metrics:metric_value().
+-type register_error() :: {already_registered, metric_key(), Type :: metric_type(), RegisteredType :: metric_type()}.
+-type push_error() :: {metric_key(), nonexistent_metric}.
+-type metric_folder() :: hay_metrics:metric_folder().
 
--opaque metric() :: #metric{}.
--type metric_type() :: counter | gauge.
--type metric_key() :: binary().
--type metric_raw_key() ::
-      atom()
-    | integer()
-    | binary()
-    | maybe_improper_list(metric_raw_key(), metric_raw_key()).
--type metric_value() :: number().
-
--type register_error() ::
-    {already_registered, {metric_key(), Type :: metric_type(), RegisteredType :: metric_type()}}.
-
--export_type([metric/0]).
--export_type([metric_type/0]).
--export_type([metric_key/0]).
--export_type([metric_raw_key/0]).
--export_type([metric_value/0]).
--export_type([register_error/0]).
-
-%% Internal types
-
--type metric_folder() :: fun((hay_metrics:metric(), Acc) -> Acc).
+-include_lib("how_are_you/include/how_are_you.hrl").
 
 %% API
 
--spec register(_, _) -> _. % TODO
+-spec register(metric_type(), metric_key()) ->
+    ok | {error, register_error()}.
+
 register(Type, Key) ->
     register_if_not_exist(Type, Key).
 
--spec push(_, _, _) -> _.
+-spec push(metric_type(), metric_key(), metric_value()) ->
+    ok | {error, push_error()}.
+
 push(Type, Key, Val) ->
     case push_(Type, Key, Val) of
         ok ->
             ok;
-        {error, _, nonexistent_metric} ->
+        {error, {Key, nonexistent_metric}} ->
             ok = register_if_not_exist(Type, Key),
             ok = push_(Type, Key, Val)
     end.
@@ -98,10 +82,15 @@ check_metric_exist(Type, Key) ->
             {error, nonexistent_metric}
     end.
 
-push_(counter, Key, Val) ->
-    folsom_metrics:notify(Key, {inc, Val});
-push_(gauge, Key, Val) ->
-    folsom_metrics:notify(Key, Val).
+push_(Type, Key, Val) ->
+    Event = case Type of
+        counter -> {inc, Val};
+        gauge   -> Val
+    end,
+    case folsom_metrics:notify(Key, Event) of
+        ok -> ok;
+        {error, Key, nonexistent_metric} -> {error, {Key, nonexistent_metric}}
+    end.
 
 -spec fold_counters(metric_folder(), FolderAcc) -> FolderAcc when
     FolderAcc :: any().
