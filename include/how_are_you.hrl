@@ -3,9 +3,9 @@
 
 %% struct 'metric'
 -record(metric, {
-    type    :: metric_type(),
-    key     :: metric_key(),
-    value   :: metric_value()
+    type    :: how_are_you:metric_type(),
+    key     :: how_are_you:metric_key(),
+    value   :: how_are_you:metric_value()
 }).
 
 -endif.
