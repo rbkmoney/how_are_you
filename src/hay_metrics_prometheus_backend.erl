@@ -6,8 +6,6 @@
 
 -include_lib("prometheus/include/prometheus.hrl").
 
--define(REGISTRY, default). % TODO: config
-
 -type metric_type() :: hay_metrics:metric_type().
 -type metric_key() :: hay_metrics:metric_key().
 -type metric_value() :: hay_metrics:metric_value().
@@ -52,12 +50,13 @@ register_if_not_exist(Type, Key) ->
 
 metric_exists(Type, Key) ->
     Table = get_prometheus_table_name(Type),
-    case prometheus_metric:check_mf_exists(Table, ?REGISTRY, Key) of
+    case prometheus_metric:check_mf_exists(Table, get_registry(), Key) of
         false -> false;
         _     -> true
     end.
 
 register_(Type, Key) ->
+    Registry = get_registry(),
     Spec = [{name, Key}, {help, Key}],
     Module = case Type of
         counter -> prometheus_counter;
@@ -66,16 +65,17 @@ register_(Type, Key) ->
     try Module:new(Spec) of
         ok ->
             ok
-    catch error:{mf_already_exists, {?REGISTRY, Key}, _} ->
+    catch error:{mf_already_exists, {Registry, Key}, _} ->
             {error, {already_exists, Key}}
     end.
 
 
 push_(Type, Key, Val) ->
+    Registry = get_registry(),
     try  do_push(Type, Key, Val) of
         ok ->
             ok
-    catch error:{unknown_metric, ?REGISTRY, Key} ->
+    catch error:{unknown_metric, Registry, Key} ->
         {error, {unknown_metric, Key}}
     end.
 
@@ -95,3 +95,11 @@ get_prometheus_table_name(gauge) ->
     ?PROMETHEUS_GAUGE_TABLE;
 get_prometheus_table_name(counter) ->
     ?PROMETHEUS_COUNTER_TABLE.
+
+get_registry() ->
+    BackendsConfig = case application:get_env(how_are_you, backends_config) of
+        {ok, Val} -> Val;
+        undefined -> #{}
+    end,
+    PrometheusConfig = maps:get(prometheus, BackendsConfig, #{}),
+    maps:get(registry, PrometheusConfig, default).

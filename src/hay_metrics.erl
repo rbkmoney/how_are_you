@@ -33,7 +33,7 @@
 -export_type([metric_folder/0]).
 -export_type([metric_backend_error/0]).
 
--define(BACKENDS, [hay_metrics_prometheus_backend, hay_metrics_folsom_backend]).
+-define(BACKENDS, []).
 
 %% API
 
@@ -61,7 +61,7 @@ value(#metric{value = Val}) ->
 
 -spec register(metric()) -> ok | {error, metric_backend_error()}.
 register(#metric{type = Type, key = Key}) ->
-    Results = [{Backend, Backend:register(Type, Key)} || Backend <- ?BACKENDS],
+    Results = [{Backend, Backend:register(Type, Key)} || Backend <- get_backends()],
     lists:foldl(
         fun fold_results/2,
         ok,
@@ -81,7 +81,7 @@ fold_results({_, {error, _}} = Error, _) ->
 
 -spec push(metric()) -> ok.
 push(#metric{type = Type, key = Key, value = Val}) ->
-    Results = [{Backend, Backend:push(Type, Key, Val)} || Backend <- ?BACKENDS],
+    Results = [{Backend, Backend:push(Type, Key, Val)} || Backend <- get_backends()],
     lists:foldl(
         fun fold_results/2,
         ok,
@@ -118,3 +118,9 @@ construct_key([Head | Tail], Acc) ->
     construct_key(Tail, <<Acc/binary, ?SEPARATOR, (construct_key(Head))/binary>>);
 construct_key(NonList, Acc) ->
     <<Acc/binary, ?SEPARATOR, (construct_key(NonList))/binary>>.
+
+get_backends() ->
+    case application:get_env(how_are_you, metric_backends) of
+        {ok, Val} -> Val;
+        undefined -> []
+    end.
