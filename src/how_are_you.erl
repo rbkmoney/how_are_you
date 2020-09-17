@@ -13,6 +13,7 @@
 -export([metric_construct/3]).
 -export([metric_register/1]).
 -export([metric_push/1]).
+-export([get_metrics_route/0]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -96,3 +97,9 @@ start(_StartType, _StartArgs) ->
     ok.
 stop(_State) ->
     ok.
+
+
+-spec get_metrics_route() ->
+    {iodata(), module(), []}.
+get_metrics_route() ->
+    {"/metrics/[:registry]", prometheus_cowboy2_handler, []}.
