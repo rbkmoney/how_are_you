@@ -10,11 +10,7 @@
 -export([get/0]).
 -export([fold/2]).
 
--record(metric, {
-    type    :: metric_type(),
-    key     :: metric_key(),
-    value   :: metric_value()
-}).
+-include_lib("how_are_you/include/how_are_you.hrl").
 
 -opaque metric() :: #metric{}.
 -type metric_type() :: counter | gauge.
