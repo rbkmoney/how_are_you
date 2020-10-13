@@ -97,9 +97,3 @@ start(_StartType, _StartArgs) ->
     ok.
 stop(_State) ->
     ok.
-
-
--spec get_metrics_route() ->
-    {iodata(), module(), []}.
-get_metrics_route() ->
-    {"/metrics/[:registry]", prometheus_cowboy2_handler, []}.
