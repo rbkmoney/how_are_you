@@ -22,5 +22,7 @@ clean:
 distclean:
 	rm -rf _build
 
+run:
+	$(REBAR) as run shell
 #test:
 #	$(REBAR) ct
