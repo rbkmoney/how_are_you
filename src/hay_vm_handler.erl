@@ -61,7 +61,7 @@ gather_vm_memory() ->
     % ]
     [
         hay_metrics:construct(gauge, [<<"vm">>, <<"memory">>, Key], Val)
-        || {Key, Val} <- erlang:memory()
+     || {Key, Val} <- erlang:memory()
     ].
 
 gather_io_stat() ->
@@ -69,9 +69,8 @@ gather_io_stat() ->
     {Input, Output} = erlang:statistics(io),
     [
         hay_metrics:construct(gauge, [<<"vm">>, <<"io">>, Key], Val)
-        || {Key, Val} <- [Input, Output]
+     || {Key, Val} <- [Input, Output]
     ].
-
 
 %% TODO do we need this?
 %% Probably not cuz it can be monitored through standart tools
@@ -88,26 +87,27 @@ gather_system_memory() ->
     % ]
     [
         hay_metrics:construct(gauge, [<<"system">>, <<"memory">>, Key], Val)
-        || {Key, Val} <- memsup:get_system_memory_data()
+     || {Key, Val} <- memsup:get_system_memory_data()
     ].
 
 gather_load_stats() ->
     Names = gather_load_stat_keys(),
     [
         hay_metrics:construct(gauge, [<<"vm">>, <<"load">>, Name], get_statistics_counter(Name))
-        || Name <- Names
+     || Name <- Names
     ].
 
 gather_vm_info() ->
     [
         hay_metrics:construct(gauge, [<<"vm">>, <<"info">>, Name], erlang:system_info(Name))
-        || Name <- get_vm_info_keys()
+     || Name <- get_vm_info_keys()
     ].
 
 gather_load_stat_keys() ->
     [
         total_run_queue_lengths,
-        total_run_queue_lengths_all, %% With dirty schedulers
+        %% With dirty schedulers
+        total_run_queue_lengths_all,
         total_active_tasks,
         context_switches,
         reductions,
@@ -116,11 +116,16 @@ gather_load_stat_keys() ->
     ].
 get_vm_info_keys() ->
     [
-        atom_count, atom_limit,
-        ets_count, ets_limit,
-        port_count, port_limit,
-        process_count, process_limit,
-        schedulers, schedulers_online,
+        atom_count,
+        atom_limit,
+        ets_count,
+        ets_limit,
+        port_count,
+        port_limit,
+        process_count,
+        process_limit,
+        schedulers,
+        schedulers_online,
         dirty_cpu_schedulers_online,
         dirty_io_schedulers
     ].
@@ -144,4 +149,5 @@ gather_scheduler_utilization() ->
             ]
         end,
         [],
-        NewSwt).
+        NewSwt
+    ).

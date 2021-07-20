@@ -12,15 +12,18 @@
 -spec handle_event(Event, RpcId, Meta, Opts) -> ok when
     Event :: woody_event_handler:event(),
     RpcId :: woody:rpc_id() | undefined,
-    Meta  :: woody_event_handler:event_meta(),
-    Opts  :: woody:options().
+    Meta :: woody_event_handler:event_meta(),
+    Opts :: woody:options().
 handle_event(
-    'invoke service handler', _RpcId,
+    'invoke service handler',
+    _RpcId,
     #{function := Function, service_schema := {Handler, Service}},
-    _Opts) ->
-        Key = [<<"woody">>, <<"rpc">>, <<"server">>, Handler, Service, Function],
-        how_are_you:metric_push(
-            how_are_you:metric_construct(counter, Key, 1)),
+    _Opts
+) ->
+    Key = [<<"woody">>, <<"rpc">>, <<"server">>, Handler, Service, Function],
+    how_are_you:metric_push(
+        how_are_you:metric_construct(counter, Key, 1)
+    ),
     ok;
 handle_event(_Event, _RpcId, _Meta, _Opts) ->
     ok.

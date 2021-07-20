@@ -24,5 +24,9 @@ distclean:
 
 run:
 	$(REBAR) as run shell
-#test:
-#	$(REBAR) ct
+
+check_format:
+	$(REBAR) fmt -c
+
+format:
+	$(REBAR) fmt -w

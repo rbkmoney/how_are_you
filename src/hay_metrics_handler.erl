@@ -81,7 +81,6 @@ handle_info({timeout, TRef, update}, State0 = #state{timer = TRef}) ->
     #state{handler = Handler, handler_state = HandlerState} = State = restart_timer(State0),
     ok = push_metrics(Handler:gather_metrics(HandlerState)),
     {noreply, State, hibernate};
-
 handle_info(_Msg, State) ->
     {noreply, State, hibernate}.
 
@@ -112,7 +111,6 @@ push_metrics(Metrics) ->
 
 restart_timer(State = #state{timer = undefined}) ->
     start_timer(State);
-
 restart_timer(State = #state{timer = TimerRef}) ->
     _ = erlang:cancel_timer(TimerRef),
     start_timer(State#state{timer = undefined}).

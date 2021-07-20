@@ -19,14 +19,14 @@
     socket_opts => [gen_udp:option()]
 }.
 -type socket_opt() ::
-    gen_udp:option() |
-    {ip, inet:socket_address()} |
-    {fd, non_neg_integer()} |
-    {ifaddr, inet:socket_address()} |
-    inet:address_family() |
-    {port, inet:port_number()} |
-    {netns, file:filename_all()} |
-    {bind_to_device, binary()}.
+    gen_udp:option()
+    | {ip, inet:socket_address()}
+    | {fd, non_neg_integer()}
+    | {ifaddr, inet:socket_address()}
+    | inet:address_family()
+    | {port, inet:port_number()}
+    | {netns, file:filename_all()}
+    | {bind_to_device, binary()}.
 
 -export_type([host/0]).
 -export_type([port_number/0]).
@@ -70,12 +70,13 @@ get_interval(#state{interval = Interval}) ->
 -spec publish_metrics(metric_fold(), state()) -> {ok, state()} | {error, Reason :: term()}.
 publish_metrics(Fold, State0) ->
     State = resolve(ensure_socket_exists(State0)),
-    ok = case Fold(fun process_metrics/2, {State, [], 0}) of
-        {State, Packet, Size} when Size > 0 ->
-            ok = send_packet(Packet, State);
-        {State, [], 0} ->
-            ok
-    end,
+    ok =
+        case Fold(fun process_metrics/2, {State, [], 0}) of
+            {State, Packet, Size} when Size > 0 ->
+                ok = send_packet(Packet, State);
+            {State, [], 0} ->
+                ok
+        end,
     {ok, State}.
 
 %% Internals

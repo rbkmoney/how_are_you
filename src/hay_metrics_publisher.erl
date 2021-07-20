@@ -87,7 +87,6 @@ handle_info({timeout, TRef, publish}, State0 = #state{timer = TRef}) ->
     #state{handler = Handler, handler_state = HandlerState} = State = restart_timer(State0),
     {ok, NewHandlerState} = Handler:publish_metrics(fun hay_metrics:fold/2, HandlerState),
     {noreply, State#state{handler_state = NewHandlerState}, hibernate};
-
 handle_info(_Msg, State) ->
     {noreply, State, hibernate}.
 
@@ -101,7 +100,6 @@ terminate(_Reason, _State) ->
 
 restart_timer(State = #state{timer = undefined}) ->
     start_timer(State);
-
 restart_timer(State = #state{timer = TimerRef}) ->
     _ = erlang:cancel_timer(TimerRef),
     start_timer(State#state{timer = undefined}).
