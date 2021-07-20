@@ -75,7 +75,7 @@ handle_cast(_Msg, State) ->
 
 -spec handle_info(term(), state()) -> {noreply, state(), hibernate}.
 
-handle_info(timeout, State0) ->
+handle_info({timeout, TRef, update}, State0 = #state{timer = TRef}) ->
     %% TODO add some sort of monitoring
     %% to prevent metrics overloading entire system
     #state{handler = Handler, handler_state = HandlerState} = State = restart_timer(State0),
@@ -121,4 +121,4 @@ restart_timer(State = #state{timer = TimerRef}) ->
 
 start_timer(State = #state{timer = undefined, handler = Handler, handler_state = HandlerState}) ->
     Interval = Handler:get_interval(HandlerState),
-    State#state{timer = erlang:send_after(Interval, self(), timeout)}.
+    State#state{timer = erlang:start_timer(Interval, self(), update)}.
