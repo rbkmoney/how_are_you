@@ -104,8 +104,6 @@ gather_vm_info() ->
         || Name <- get_vm_info_keys()
     ].
 
--ifdef(OTP_RELEASE).
--if(?OTP_RELEASE >= 21).
 gather_load_stat_keys() ->
     [
         total_run_queue_lengths,
@@ -126,24 +124,6 @@ get_vm_info_keys() ->
         dirty_cpu_schedulers_online,
         dirty_io_schedulers
     ].
--endif.
--else.
-gather_load_stat_keys() ->
-    [
-        total_run_queue_lengths,
-        total_active_tasks,
-        context_switches,
-        reductions,
-        wall_clock,
-        runtime
-    ].
-get_vm_info_keys() ->
-    [
-        port_count, port_limit,
-        process_count, process_limit,
-        schedulers, schedulers_online
-    ].
--endif.
 
 get_statistics_counter(Key) ->
     case erlang:statistics(Key) of
