@@ -1,14 +1,16 @@
-{"1.1.0",
-[{<<"bear">>,{pkg,<<"bear">>,<<"0.8.7">>},1},
+{"1.2.0",
+[{<<"bear">>,{pkg,<<"bear">>,<<"0.9.0">>},1},
  {<<"cg_mon">>,
   {git,"https://github.com/rbkmoney/cg_mon.git",
        {ref,"5a87a37694e42b6592d3b4164ae54e0e87e24e18"}},
   0},
  {<<"folsom">>,
   {git,"https://github.com/folsom-project/folsom.git",
-       {ref,"eeb1cc467eb64bd94075b95b8963e80d8b4df3df"}},
+       {ref,"62fd0714e6f0b4e7833880afe371a9c882ea0fc2"}},
   0}]}.
 [
 {pkg_hash,[
- {<<"bear">>, <<"16264309AE5D005D03718A5C82641FCC259C9E8F09ADEB6FD79CA4271168656F">>}]}
+ {<<"bear">>, <<"A31CCF5361791DD5E708F4789D67E2FEF496C4F05935FC59ADC11622F834D128">>}]},
+{pkg_hash_ext,[
+ {<<"bear">>, <<"47F71F098F2E3CD05E124A896C5EC2F155967A2B6FF6731E0D627312CCAB7E28">>}]}
 ].

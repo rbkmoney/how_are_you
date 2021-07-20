@@ -71,5 +71,5 @@ gather_metrics(Metrics, KeyPrefix) ->
     Data = [{Key, Fun()} || {Key, Fun} <- Metrics],
     [
         hay_metrics:construct(gauge, [KeyPrefix, Key], Value)
-        || {Key, Value} <- Data, Value =/= undefined
+     || {Key, Value} <- Data, Value =/= undefined
     ].

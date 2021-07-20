@@ -20,8 +20,13 @@ clean:
 	$(REBAR) clean
 
 distclean:
-	$(REBAR) clean -a
 	rm -rf _build
 
-#test:
-#	$(REBAR) ct
+run:
+	$(REBAR) as run shell
+
+check_format:
+	$(REBAR) fmt -c
+
+format:
+	$(REBAR) fmt -w

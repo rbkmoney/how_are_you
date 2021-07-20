@@ -11,16 +11,16 @@
 -export([fold/2]).
 
 -record(metric, {
-    type    :: metric_type(),
-    key     :: metric_key(),
-    value   :: metric_value()
+    type :: metric_type(),
+    key :: metric_key(),
+    value :: metric_value()
 }).
 
 -opaque metric() :: #metric{}.
 -type metric_type() :: counter | gauge.
 -type metric_key() :: binary().
 -type metric_raw_key() ::
-      atom()
+    atom()
     | integer()
     | binary()
     | maybe_improper_list(metric_raw_key(), metric_raw_key()).
@@ -45,9 +45,9 @@
 -spec construct(metric_type(), metric_raw_key(), metric_value()) -> metric().
 construct(Type, Key, Val) ->
     #metric{
-        type    = Type,
-        key     = construct_key(Key),
-        value   = Val
+        type = Type,
+        key = construct_key(Key),
+        value = Val
     }.
 
 -spec type(metric()) -> metric_type().

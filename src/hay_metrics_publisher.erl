@@ -17,7 +17,6 @@
 -export([handle_cast/2]).
 -export([handle_info/2]).
 -export([terminate/2]).
--export([code_change/3]).
 
 -define(SERVER, ?MODULE).
 -define(DEFAULT_INTERVAL, 5000).
@@ -64,41 +63,36 @@ start_link({Handler, Options}) ->
 
 %%
 
--spec init({handler(), handler_options()}) -> {ok, state()}.
+-spec init({handler(), handler_options()}) -> {ok, state(), hibernate}.
 
 init({Handler, Options}) ->
     {ok, HandlerState} = Handler:init(Options),
-    {ok, start_timer(#state{handler = Handler, handler_state = HandlerState})}.
+    {ok, start_timer(#state{handler = Handler, handler_state = HandlerState}), hibernate}.
 
--spec handle_call(term(), {pid(), term()}, state()) -> {noreply, state()}.
+-spec handle_call(term(), {pid(), term()}, state()) -> {noreply, state(), hibernate}.
 
 handle_call(_Msg, _From, State) ->
-    {noreply, State}.
+    {noreply, State, hibernate}.
 
--spec handle_cast(term(), state()) -> {noreply, state()}.
+-spec handle_cast(term(), state()) -> {noreply, state(), hibernate}.
 
 handle_cast(_Msg, State) ->
-    {noreply, State}.
+    {noreply, State, hibernate}.
 
--spec handle_info(term(), state()) -> {noreply, state()}.
+-spec handle_info(term(), state()) -> {noreply, state(), hibernate}.
 
-handle_info(timeout, State0) ->
+handle_info({timeout, TRef, publish}, State0 = #state{timer = TRef}) ->
     %% TODO add some sort of monitoring
     %% to prevent metrics overloading entire system
     #state{handler = Handler, handler_state = HandlerState} = State = restart_timer(State0),
     {ok, NewHandlerState} = Handler:publish_metrics(fun hay_metrics:fold/2, HandlerState),
-    {noreply, State#state{handler_state = NewHandlerState}};
-
+    {noreply, State#state{handler_state = NewHandlerState}, hibernate};
 handle_info(_Msg, State) ->
-    {noreply, State}.
+    {noreply, State, hibernate}.
 
 -spec terminate(term(), state()) -> ok.
 terminate(_Reason, _State) ->
     ok.
-
--spec code_change(term(), state(), term()) -> {error, noimpl}.
-code_change(_OldVsn, _State, _Extra) ->
-    {error, noimpl}.
 
 %% internal
 
@@ -106,7 +100,6 @@ code_change(_OldVsn, _State, _Extra) ->
 
 restart_timer(State = #state{timer = undefined}) ->
     start_timer(State);
-
 restart_timer(State = #state{timer = TimerRef}) ->
     _ = erlang:cancel_timer(TimerRef),
     start_timer(State#state{timer = undefined}).
@@ -115,4 +108,4 @@ restart_timer(State = #state{timer = TimerRef}) ->
 
 start_timer(State = #state{timer = undefined, handler = Handler, handler_state = HandlerState}) ->
     Interval = Handler:get_interval(HandlerState),
-    State#state{timer = erlang:send_after(Interval, self(), timeout)}.
+    State#state{timer = erlang:start_timer(Interval, self(), publish)}.
